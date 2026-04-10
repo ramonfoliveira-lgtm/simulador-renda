@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Renda Passiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark:   #1B5E20;
+      --green-mid:    #2E7D32;
+      --green-light:  #43A047;
+      --green-pale:   #E8F5E9;
+      --green-xpale:  #F1F8F1;
+      --accent:       #66BB6A;
+      --bg:           #F5F5F5;
+      --white:        #FFFFFF;
+      --text-primary: #1A1A1A;
+      --text-muted:   #6B7280;
+      --text-light:   #9CA3AF;
+      --border:       #E5E7EB;
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+      --radius-xl:    28px;
+      --shadow-sm:    0 1px 4px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.05);
+      --shadow-lg:    0 12px 40px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.06);
+      --transition:   all .22s cubic-bezier(.4,0,.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 0 0 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(145deg, var(--green-dark) 0%, var(--green-mid) 60%, var(--green-light) 100%);
+      padding: 52px 24px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+
+    .header-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .6; transform: scale(1.3); }
+    }
+
+    .header h1 {
+      color: #fff;
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -.5px;
+      margin-bottom: 12px;
+    }
+
+    .header p {
+      color: rgba(255,255,255,.82);
+      font-size: clamp(14px, 3vw, 16px);
+      max-width: 380px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ─── Main Container ─── */
+    .container {
+      max-width: 520px;
+      margin: -32px auto 0;
+      padding: 0 16px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      padding: 28px 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--green-mid);
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      width: 4px; height: 16px;
+      background: linear-gradient(180deg, var(--green-mid), var(--accent));
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Input Groups ─── */
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group:last-of-type { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .input-hint {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-light);
+      margin-left: 4px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--green-mid);
+      pointer-events: none;
+      z-index: 1;
+      user-select: none;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 14px 14px 14px 38px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--green-xpale);
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: var(--transition);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="text"].no-prefix,
+    input[type="number"].no-prefix {
+      padding-left: 14px;
+    }
+
+    input:focus {
+      border-color: var(--green-mid);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(46,125,50,.10);
+    }
+
+    input::placeholder { color: var(--text-light); font-weight: 400; }
+
+    /* ─── CTA Button ─── */
+    .btn-primary {
+      width: 100%;
+      padding: 17px 24px;
+      background: linear-gradient(135deg, var(--green-mid) 0%, var(--green-dark) 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 4px 16px rgba(27,94,32,.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(27,94,32,.40);
+    }
+
+    .btn-primary:hover::after { background: rgba(255,255,255,.06); }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(27,94,32,.30); }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 17px 24px;
+      background: linear-gradient(135deg, var(--green-light) 0%, var(--green-mid) 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      display: block;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(46,125,50,.30);
+      letter-spacing: .2px;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(46,125,50,.38);
+    }
+
+    /* ─── Results Card ─── */
+    .results-card {
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .results-card.visible {
+      display: block;
+      animation: slideIn .5s cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .metric-box {
+      background: var(--green-xpale);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      border: 1px solid var(--green-pale);
+    }
+
+    .metric-box.highlight {
+      background: linear-gradient(135deg, var(--green-mid), var(--green-dark));
+      border-color: transparent;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .metric-box.highlight .metric-label {
+      color: rgba(255,255,255,.75);
+    }
+
+    .metric-value {
+      font-size: clamp(18px, 4vw, 22px);
+      font-weight: 800;
+      color: var(--green-dark);
+      line-height: 1.1;
+    }
+
+    .metric-box.highlight .metric-value {
+      color: #fff;
+    }
+
+    /* ─── Insight Box ─── */
+    .insight-box {
+      background: var(--green-pale);
+      border-left: 4px solid var(--green-mid);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .insight-icon {
+      font-size: 16px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .insight-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--green-dark);
+      line-height: 1.6;
+    }
+
+    /* ─── Chart ─── */
+    .chart-wrap {
+      margin: 4px 0 8px;
+      position: relative;
+      height: 200px;
+    }
+
+    /* ─── Divider ─── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    /* ─── Name step ─── */
+    .name-step { text-align: center; padding: 8px 0 4px; }
+    .name-step h2 { font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; }
+    .name-step p { font-size: 14px; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
+
+    #nome {
+      width: 100%;
+      padding: 16px 18px;
+      font-family: inherit;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--green-xpale);
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: var(--transition);
+      text-align: center;
+      -webkit-appearance: none;
+      margin-bottom: 16px;
+    }
+
+    #nome:focus {
+      border-color: var(--green-mid);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(46,125,50,.10);
+    }
+
+    #nome::placeholder { color: var(--text-light); font-weight: 400; }
+
+    .step { display: none; }
+    .step.active { display: block; }
+
+    /* ─── Secondary CTA section ─── */
+    .cta-section {
+      display: none;
+      opacity: 0;
+    }
+
+    .cta-section.visible {
+      display: block;
+      animation: slideIn .6s .2s cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    .urgency-line {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 10px;
+      line-height: 1.55;
+      padding: 0 4px;
+    }
+
+    .urgency-line strong { color: var(--green-dark); }
+
+    /* ─── Footer ─── */
+    .footer {
+      text-align: center;
+      padding: 24px 16px 0;
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 400px) {
+      .card { padding: 22px 18px; }
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-badge">Simulador Financeiro</div>
+    <h1 id="headerTitle">Simulador de Renda Passiva</h1>
+    <p>Descubra quanto você precisa investir para viver de renda</p>
+  </header>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="container">
+
+    <!-- STEP 1: NAME -->
+    <div class="step active" id="stepNome">
+      <div class="card">
+        <div class="name-step">
+          <h2>Olá! Qual é o seu nome?</h2>
+          <p>Vamos personalizar sua simulação de renda passiva.</p>
+          <input type="text" id="nome" placeholder="Digite seu primeiro nome" autocomplete="given-name" maxlength="40" />
+          <button class="btn-primary" onclick="avancarNome()">Começar simulação →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: SIMULATOR -->
+    <div class="step" id="stepSim">
+
+    <!-- INPUT CARD -->
+    <div class="card">
+      <div class="card-title">Seus dados</div>
+
+      <!-- Aporte Mensal -->
+      <div class="input-group">
+        <label for="aporte">
+          Aporte mensal
+          <span class="input-hint">Quanto você investe por mês?</span>
+        </label>
+        <div class="input-wrap">
+          <span class="input-prefix">R$</span>
+          <input type="text" id="aporte" placeholder="500,00" inputmode="decimal" autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- Taxa de Juros -->
+      <div class="input-group">
+        <label for="taxa">
+          Taxa de juros mensal
+          <span class="input-hint">Ex: 1,00 para 1% ao mês</span>
+        </label>
+        <div class="input-wrap">
+          <span class="input-prefix">%</span>
+          <input type="text" id="taxa" placeholder="1,00" inputmode="decimal" autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- Prazo -->
+      <div class="input-group">
+        <label for="prazo">
+          Prazo
+          <span class="input-hint">Em meses</span>
+        </label>
+        <div class="input-wrap">
+          <input type="text" id="prazo" class="no-prefix" placeholder="60" inputmode="numeric" autocomplete="off" style="padding-left:14px;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULATE BUTTON -->
+    <button class="btn-primary" id="calcBtn" onclick="calcular()">
+      Calcular minha renda passiva →
+    </button>
+
+    <!-- RESULTS CARD -->
+    <div class="card results-card" id="resultsCard" style="margin-top:16px;">
+      <div class="card-title">Seu resultado</div>
+
+      <!-- Metric Grid -->
+      <div class="metric-grid">
+        <div class="metric-box highlight">
+          <div class="metric-label">Patrimônio acumulado</div>
+          <div class="metric-value" id="res-patrimonio">R$ 0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Renda mensal estimada</div>
+          <div class="metric-value" id="res-renda">R$ 0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Total investido</div>
+          <div class="metric-value" id="res-total">R$ 0</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Juros gerados</div>
+          <div class="metric-value" id="res-juros">R$ 0</div>
+        </div>
+      </div>
+
+      <!-- Insight -->
+      <div class="insight-box">
+        <span class="insight-icon">💡</span>
+        <p class="insight-text" id="res-insight">—</p>
+      </div>
+
+      <!-- Chart -->
+      <div class="card-title" style="margin-bottom:14px;">Evolução do patrimônio</div>
+      <div class="chart-wrap">
+        <canvas id="growthChart"></canvas>
+      </div>
+    </div>
+
+    <!-- SECONDARY CTA -->
+    <div class="cta-section" id="ctaSection">
+      <p class="urgency-line">A maioria das pessoas não acompanha seus investimentos —<br><strong>por isso não evolui.</strong></p>
+      <a href="#" class="btn-secondary">
+        📊 Quero acompanhar minha renda passiva mês a mês →
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <p>Simulação com fins educativos. Rentabilidade passada não garante retornos futuros.</p>
+    </div>
+
+    </div><!-- /stepSim -->
+  </main>
+
+  <script>
+    /* ─── Global: user name ─── */
+    let userName = '';
+
+    /* ─── Step 1 → Step 2: name flow ─── */
+    function avancarNome() {
+      const nomeEl = document.getElementById('nome');
+      const raw = nomeEl.value.trim();
+      if (!raw) {
+        nomeEl.style.borderColor = '#E53935';
+        nomeEl.style.background  = '#FFEBEE';
+        nomeEl.animate([
+          { transform: 'translateX(0)' }, { transform: 'translateX(-6px)' },
+          { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }
+        ], { duration: 280, easing: 'ease' });
+        setTimeout(() => { nomeEl.style.borderColor = ''; nomeEl.style.background = ''; nomeEl.focus(); }, 700);
+        return;
+      }
+      /* Capitalize first letter */
+      userName = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+
+      /* Update header greeting */
+      document.getElementById('headerTitle').textContent = 'Olá, ' + userName + '! Vamos simular sua renda passiva';
+
+      /* Transition steps */
+      document.getElementById('stepNome').classList.remove('active');
+      const stepSim = document.getElementById('stepSim');
+      stepSim.classList.add('active');
+      stepSim.style.opacity = '0';
+      stepSim.style.transform = 'translateY(12px)';
+      requestAnimationFrame(() => {
+        stepSim.style.transition = 'opacity .4s ease, transform .4s ease';
+        stepSim.style.opacity = '1';
+        stepSim.style.transform = 'translateY(0)';
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* Enter on nome field advances */
+    document.getElementById('nome').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') avancarNome();
+    });
+
+    /* ─── Utility: format as BRL currency ─── */
+    function brl(v) {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
+    }
+
+    /* ─── Utility: parse localized number string ─── */
+    function parseBR(str) {
+      if (!str) return NaN;
+      // Remove spaces, R$, replace comma decimal
+      return parseFloat(str.replace(/[R$\s.]/g, '').replace(',', '.'));
+    }
+
+    /* ─── Input masking: currency ─── */
+    function maskCurrency(el) {
+      el.addEventListener('input', function () {
+        let raw = this.value.replace(/\D/g, '');
+        if (!raw) { this.value = ''; return; }
+        let cents = parseInt(raw, 10);
+        let formatted = (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        this.value = formatted;
+      });
+    }
+
+    /* ─── Input masking: rate (up to 2 decimals) ─── */
+    function maskRate(el) {
+      el.addEventListener('input', function () {
+        let raw = this.value.replace(/[^\d,]/g, '');
+        // Allow only one comma
+        let parts = raw.split(',');
+        if (parts.length > 2) raw = parts[0] + ',' + parts.slice(1).join('');
+        if (parts[1] && parts[1].length > 2) raw = parts[0] + ',' + parts[1].slice(0, 2);
+        this.value = raw;
+      });
+    }
+
+    /* ─── Input masking: integer months ─── */
+    function maskInt(el) {
+      el.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '');
+      });
+    }
+
+    /* Apply masks */
+    maskCurrency(document.getElementById('aporte'));
+    maskRate(document.getElementById('taxa'));
+    maskInt(document.getElementById('prazo'));
+
+    /* Enter key triggers calc */
+    ['aporte','taxa','prazo'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') calcular();
+      });
+    });
+
+    /* ─── Chart instance (kept for update) ─── */
+    let chartInstance = null;
+
+    /* ─── Main calculation function ─── */
+    function calcular() {
+      const aporteRaw = document.getElementById('aporte').value;
+      const taxaRaw   = document.getElementById('taxa').value;
+      const prazoRaw  = document.getElementById('prazo').value;
+
+      const aporte = parseBR(aporteRaw);
+      const taxa   = parseBR(taxaRaw) / 100;
+      const prazo  = parseInt(prazoRaw, 10);
+
+      /* Validation */
+      if (isNaN(aporte) || aporte <= 0) { shake('aporte'); return; }
+      if (isNaN(taxa) || taxa <= 0)     { shake('taxa');   return; }
+      if (isNaN(prazo) || prazo <= 0)   { shake('prazo');  return; }
+
+      /* ─── Compound interest: FV of series ─── */
+      /* FV = PMT × [ (1+i)^n − 1 ] / i */
+      const fv = aporte * ((Math.pow(1 + taxa, prazo) - 1) / taxa);
+      const totalInvestido = aporte * prazo;
+      const jurosGerados   = fv - totalInvestido;
+      const rendaMensal    = fv * 0.008; /* 0.8% da carteira */
+
+      /* ─── Update metrics ─── */
+      document.getElementById('res-patrimonio').textContent = brl(fv);
+      document.getElementById('res-renda').textContent      = brl(rendaMensal);
+      document.getElementById('res-total').textContent      = brl(totalInvestido);
+      document.getElementById('res-juros').textContent      = brl(jurosGerados);
+
+      /* ─── Insight sentence ─── */
+      const anos = (prazo / 12).toFixed(1).replace('.', ',');
+      const nomeStr = userName ? userName + ', se' : 'Se';
+      document.getElementById('res-insight').textContent =
+        `${nomeStr} você mantiver esse ritmo por ${prazo} meses (${anos} anos), pode atingir ${brl(fv)} e gerar cerca de ${brl(rendaMensal)}/mês — o suficiente para construir uma renda passiva consistente e mudar de patamar.`;
+
+      /* ─── Build chart data ─── */
+      buildChart(aporte, taxa, prazo);
+
+      /* ─── Show results ─── */
+      const resultsCard = document.getElementById('resultsCard');
+      const ctaSection  = document.getElementById('ctaSection');
+
+      /* Reset animations for re-calculation */
+      resultsCard.classList.remove('visible');
+      ctaSection.classList.remove('visible');
+
+      void resultsCard.offsetWidth; /* reflow */
+
+      resultsCard.classList.add('visible');
+      ctaSection.classList.add('visible');
+
+      /* Smooth scroll to results */
+      setTimeout(() => {
+        resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    /* ─── Shake animation for invalid input ─── */
+    function shake(id) {
+      const el = document.getElementById(id);
+      el.style.borderColor = '#E53935';
+      el.style.background  = '#FFEBEE';
+      el.animate([
+        { transform: 'translateX(0)'  },
+        { transform: 'translateX(-6px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(-4px)' },
+        { transform: 'translateX(0)'  }
+      ], { duration: 300, easing: 'ease' });
+      setTimeout(() => {
+        el.style.borderColor = '';
+        el.style.background  = '';
+        el.focus();
+      }, 800);
+    }
+
+    /* ─── Build / Update Chart ─── */
+    function buildChart(aporte, taxa, prazo) {
+      /* Sample at most 24 points to keep chart clean */
+      const step = Math.max(1, Math.ceil(prazo / 24));
+      const labels = [];
+      const dataFV = [];
+      const dataInv = [];
+
+      for (let m = step; m <= prazo; m += step) {
+        const fvM = aporte * ((Math.pow(1 + taxa, m) - 1) / taxa);
+        labels.push(m + 'M');
+        dataFV.push(parseFloat(fvM.toFixed(2)));
+        dataInv.push(parseFloat((aporte * m).toFixed(2)));
+      }
+
+      const ctx = document.getElementById('growthChart').getContext('2d');
+
+      if (chartInstance) { chartInstance.destroy(); }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Patrimônio total',
+              data: dataFV,
+              borderColor: '#2E7D32',
+              backgroundColor: 'rgba(46,125,50,.10)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: .4,
+              pointRadius: dataFV.length <= 12 ? 4 : 2,
+              pointBackgroundColor: '#2E7D32',
+            },
+            {
+              label: 'Total investido',
+              data: dataInv,
+              borderColor: '#9CA3AF',
+              backgroundColor: 'rgba(156,163,175,.08)',
+              borderWidth: 1.5,
+              fill: true,
+              tension: .3,
+              pointRadius: 0,
+              borderDash: [5, 4],
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: 'Inter', size: 11 },
+                color: '#6B7280',
+                usePointStyle: true,
+                pointStyleWidth: 20,
+                padding: 16,
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1B5E20',
+              titleColor: 'rgba(255,255,255,.8)',
+              bodyColor: '#fff',
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: ctx => ` ${ctx.dataset.label}: ${brl(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 10 }, color: '#9CA3AF', maxTicksLimit: 8 }
+            },
+            y: {
+              grid: { color: 'rgba(0,0,0,.04)' },
+              ticks: {
+                font: { family: 'Inter', size: 10 },
+                color: '#9CA3AF',
+                callback: v => {
+                  if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(1) + 'M';
+                  if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(0) + 'k';
+                  return 'R$ ' + v;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
